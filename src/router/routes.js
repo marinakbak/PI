@@ -47,6 +47,11 @@ const routes = [
         component: () => import("src/pages/PageKontakt.vue"),
         meta: { auth: true },
       },
+      {
+        path: "pomoc",
+        component: () => import("src/pages/PagePomoc.vue"),
+        meta: { auth: true },
+      },
     ],
   },
   {

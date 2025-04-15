@@ -134,6 +134,12 @@ const linksList = [
     icon: "contact_support",
     to: "/main/kontakt",
   },
+  {
+    title: "Pomoć",
+    caption: "Korisnički priručnik",
+    icon: "help_outline",
+    to: "/main/pomoc",
+  },
 ];
 
 const leftDrawerOpen = ref(false);
