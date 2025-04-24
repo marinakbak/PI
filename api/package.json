@@ -8,8 +8,9 @@
   "scripts": {
     "lint": "eslint --ext .js,.vue ./",
     "format": "prettier --write \"**/*.{js,vue,scss,html,md,json}\" --ignore-path .gitignore",
-    "test": "echo \"No test specified\" && exit 0",
+    "test:unit": "vitest",
     "dev": "quasar dev",
+    "start": "node index.js",
     "build": "quasar build"
   },
   "dependencies": {
@@ -17,7 +18,7 @@
     "axios": "^1.7.9",
     "cors": "^2.8.5",
     "express": "^4.21.2",
-    "express-validator": "^7.2.0",
+    "express-validator": "^7.2.1",
     "mysql2": "^3.12.0",
     "quasar": "^2.16.0",
     "vue": "^3.4.18",
@@ -31,7 +32,11 @@
     "eslint-plugin-vue": "^9.0.0",
     "postcss": "^8.4.14",
     "prettier": "^2.5.1",
-    "vite-plugin-checker": "^0.8.0"
+    "vite-plugin-checker": "^0.8.0",
+    "jest": "^27.0.0",
+    "babel-jest": "^27.0.0",
+    "vue-jest": "^5.0.0",
+    "@vue/test-utils": "^2.0.0"
   },
   "engines": {
     "node": "^20 || ^18 || ^16",

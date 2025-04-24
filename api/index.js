@@ -5,7 +5,7 @@ const { check, validationResult } = require("express-validator"); // Za bolju va
 const config = require("./config");
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 // Funkcija za izvršavanje SQL upita
 async function query(sql, params) {
@@ -511,7 +511,49 @@ app.get("/api/IZVJESCA/polaznici_ne_polozili", async function (req, res, next) {
     next(err);
   }
 });
+// Ruta za dohvaćanje svih unosa nastavnika na tečajevima
+app.get("/api/NASTAVNIK_NA_TECAJU", async function (req, res, next) {
+  try {
+    const result = await query(`
+      SELECT
+        NNT.ID_nastavnik_na_tecaju,
+        NASTAVNIK.ImePrezime_nastavnika,
+        TECAJ.Naziv_tecaja,
+        NNT.Broj_sati_nastave
+      FROM NASTAVNIK_NA_TECAJU NNT
+      INNER JOIN NASTAVNIK ON NNT.ID_nastavnika = NASTAVNIK.ID_nastavnika
+      INNER JOIN TECAJ ON NNT.Sifra_tecaja = TECAJ.Sifra_tecaja
+      ORDER BY NASTAVNIK.ImePrezime_nastavnika;
+    `);
+    res.json(result);
+  } catch (err) {
+    console.error("Greška u dohvaćanju nastavnika na tečaju:", err.message);
+    next(err);
+  }
+});
+
+app.get("/api/POLAZNIK_NA_TECAJU", async function (req, res, next) {
+  try {
+    const result = await query(`
+      SELECT
+        PNT.ID_polaznika_na_tecaju,
+        PNT.Datum_upisa_polaznika,
+        PNT.Sifra_tecaja,
+        T.Naziv_tecaja,
+        PNT.ID_polaznika_tecaja,
+        PT.ImePrezime_polaznika
+      FROM POLAZNIK_NA_TECAJU PNT
+      INNER JOIN TECAJ T ON PNT.Sifra_tecaja = T.Sifra_tecaja
+      INNER JOIN POLAZNIK_TECAJA PT ON PNT.ID_polaznika_tecaja = PT.ID_polaznika_tecaja
+    `);
+    res.json(result);
+  } catch (err) {
+    console.error("Greška u dohvaćanju POLAZNIK_NA_TECAJU:", err.message);
+    next(err);
+  }
+});
 
 app.listen(port, () => {
   console.log(`Example app listening at http://localhost:${port}`);
 });
+module.exports = app;

@@ -9,7 +9,7 @@
         flat
         selection="single"
         v-model:selected="student"
-        @update:selected="onSelectionRow"
+        @update:selected="onSelectedRow"
       >
         <template v-slot:top>
           <q-btn color="primary" label="Pročitaj" @click="onRead" />
@@ -29,6 +29,15 @@
             label="Obriši polaznika"
             @click="onDeleteRow"
           />
+          <q-btn
+            color="blue"
+            label="Polaznici na tečaju"
+            @click="onShowPolazniciNaTecaju"
+            icon="school"
+          />
+        </template>
+        <template v-slot:bottom-row>
+          <q-inner-loading :showing="loading" label="Učitavanje..." />
         </template>
       </q-table>
     </div>
@@ -90,6 +99,7 @@
       </q-card>
     </div>
 
+    <!-- Dijalog za potvrdu brisanja -->
     <q-dialog v-model="deleteDialog">
       <q-card>
         <q-card-section>
@@ -101,12 +111,42 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <!-- Dijalog za prikaz polaznika na tečaju -->
+    <q-dialog v-model="showPolazniciNaTecaju" maximized>
+      <q-card>
+        <q-card-section class="row items-center">
+          <div class="text-h6">Polaznici na tečajevima</div>
+          <q-space />
+          <q-btn
+            icon="close"
+            flat
+            round
+            dense
+            @click="showPolazniciNaTecaju = false"
+          />
+        </q-card-section>
+        <q-separator />
+        <q-card-section>
+          <q-table
+            :rows="polazniciNaTecaju"
+            :columns="columnsPolaznikNaTecaju"
+            row-key="ID_polaznika_na_tecaju"
+            flat
+            :loading="loading"
+          />
+        </q-card-section>
+      </q-card>
+    </q-dialog>
   </q-page>
 </template>
 
 <script setup>
 import { ref, onMounted } from "vue";
 import { api } from "boot/axios";
+import { useRouter } from "vue-router";
+
+const router = useRouter();
 
 defineOptions({
   name: "StudentPage",
@@ -154,7 +194,33 @@ const columns = [
   },
 ];
 
-const students = ref([]); // Inicijalno prazan niz
+const columnsPolaznikNaTecaju = [
+  {
+    name: "Naziv_tecaja",
+    label: "Tečaj",
+    align: "left",
+    field: "Naziv_tecaja",
+    sortable: true,
+  },
+  {
+    name: "ImePrezime_polaznika",
+    label: "Polaznik",
+    align: "left",
+    field: "ImePrezime_polaznika",
+    sortable: true,
+  },
+  {
+    name: "Datum_upisa_polaznika",
+    label: "Datum upisa",
+    align: "right",
+    field: "Datum_upisa_polaznika",
+    sortable: true,
+    format: (val) => new Intl.DateTimeFormat("hr-HR").format(new Date(val)),
+  },
+];
+
+// State
+const students = ref([]);
 const student = ref([]);
 const editStudent = ref({
   ID_polaznika_tecaja: null,
@@ -164,41 +230,41 @@ const editStudent = ref({
   Kontakt_polaznika: "",
   Datum_upisa_polaznika: "",
 });
-
 const showForm = ref(false);
 const deleteDialog = ref(false);
+const showPolazniciNaTecaju = ref(false);
+const polazniciNaTecaju = ref([]);
+const loading = ref(false);
 
-// Funkcija za učitavanje podataka kad se klikne gumb "Pročitaj"
+// Fetch data
 const onRead = async () => {
   try {
+    loading.value = true;
     const result = await api.get("/POLAZNIK_TECAJA");
-    students.value = result.data; // Postavljanje podataka u students
-    student.value = []; // Očistiti odabrani student
-    showForm.value = false; // Zatvori formu ako je otvorena
+    students.value = result.data;
+    student.value = [];
+    showForm.value = false;
   } catch (error) {
     console.error(error);
+  } finally {
+    loading.value = false;
   }
 };
 
-// Funkcija za brisanje polaznika
-const onDeleteRow = () => {
-  deleteDialog.value = true;
-};
-
-const confirmDelete = async () => {
+const onShowPolazniciNaTecaju = async () => {
   try {
-    await api.delete("/POLAZNIK_TECAJA", {
-      data: { ID_polaznika_tecaja: student.value[0].ID_polaznika_tecaja },
-    });
-    onRead(); // Ponovno učitaj podatke
-    student.value = []; // Očistiti odabrani student
+    loading.value = true;
+    const result = await api.get("/POLAZNIK_NA_TECAJU");
+    polazniciNaTecaju.value = result.data;
+    showPolazniciNaTecaju.value = true;
   } catch (error) {
-    console.error(error);
+    console.error("Greška pri dohvaćanju polaznika na tečaju", error);
+  } finally {
+    loading.value = false;
   }
-  deleteDialog.value = false;
 };
 
-// Funkcija za dodavanje novog polaznika
+// Row actions
 const onAddRow = () => {
   student.value = [];
   editStudent.value = {
@@ -212,51 +278,63 @@ const onAddRow = () => {
   showForm.value = true;
 };
 
-// Funkcija za uređivanje podataka odabranog polaznika
 const onEditRow = () => {
   if (student.value.length > 0) {
     editStudent.value = { ...student.value[0] };
     showForm.value = true;
   } else {
-    alert("Nema odabranog polaznika za izmjnu");
+    alert("Nema odabranog polaznika za izmjenu");
   }
 };
 
-// Funkcija za zatvaranje forme
+const onDeleteRow = () => {
+  deleteDialog.value = true;
+};
+
+const confirmDelete = async () => {
+  try {
+    await api.delete("/POLAZNIK_TECAJA", {
+      data: { ID_polaznika_tecaja: student.value[0].ID_polaznika_tecaja },
+    });
+    onRead();
+    student.value = [];
+  } catch (error) {
+    console.error(error);
+  }
+  deleteDialog.value = false;
+};
+
 const onClose = () => {
-  editStudent.value = {
-    ID_polaznika_tecaja: null,
-    ImePrezime_polaznika: "",
-    Status_polaznika: "",
-    Adresa_polaznika: "",
-    Kontakt_polaznika: "",
-    Datum_upisa_polaznika: "",
-  };
   showForm.value = false;
 };
 
-// Funkcija za spremanje podataka
 const onSave = async () => {
   try {
-    console.log("Podaci za spremanje:", editStudent.value);
     if (editStudent.value.ID_polaznika_tecaja === null) {
       await api.post("/POLAZNIK_TECAJA", editStudent.value);
     } else {
       await api.put("/POLAZNIK_TECAJA", editStudent.value);
     }
-    onRead(); // Ponovno učitaj podatke
+    onRead();
     onClose();
   } catch (error) {
     console.error("Greška pri spremanju", error);
   }
 };
 
-// Funkcija za postavljanje podataka za odabranog studenta
 const onSelectedRow = () => {
   editStudent.value = { ...student.value[0] };
 };
 
 onMounted(() => {
-  // Ne pozivam onRead() odmah, nego tek kad korisnik klikne gumb Pročitaj
+  // onRead se poziva ručno klikom na gumb
 });
 </script>
+
+<style lang="sass" scoped>
+.q-btn
+  margin-top: 10px
+
+.q-table
+  max-width: 100%
+</style>

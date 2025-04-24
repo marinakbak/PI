@@ -1,3 +1,4 @@
+require("dotenv").config();
 const config = {
   db: {
     host: "ucka.veleri.hr",
